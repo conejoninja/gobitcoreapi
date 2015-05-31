@@ -7,12 +7,23 @@ import (
     "net/http"
     "strconv"
     "bytes"
+    "fmt"
+    "reflect"
+    "time"
 )
 
 type API struct {
     endPoint      string
     version       string
     client        *http.Client
+}
+
+type NodeStatus struct {
+    Sync        float64
+    PeerCount   int
+    Version     string
+    Network     string
+    Height      int
 }
 
 func NewAPI(endPoint string) *API {
@@ -55,11 +66,22 @@ func (this *API) SetVersion(version string) {
     this.version = version
 }
 
-func (this *API) Node() (interface{}, error) {
+func (this *API) Node() (NodeStatus, error) {
+    var node NodeStatus
+
     dataStream, err := this.call("node", "GET", nil)
     data := map[string]interface{}{}
     json.Unmarshal(dataStream, &data)
-    return data, err
+
+    if err==nil {
+        node.Sync = data["sync"].(float64)
+        node.PeerCount = int(data["peerCount"].(float64))
+        node.Height = int(data["height"].(float64))
+        node.Version = toString(data["version"])
+        node.Network = toString(data["network"])
+    }
+
+    return node, err
 }
 
 func (this *API) Blocks( from, to, offset, limit int) (interface{}, error) {
@@ -176,3 +198,35 @@ func (this *API) DoubleSpendsOutputs(address string) (interface{}, error) {
 }
 
 
+func toString(x interface{}) string {
+    switch y := x.(type) {
+
+        // Handle dates with special logic
+        // This needs to come above the fmt.Stringer
+        // test since time.Time's have a .String()
+        // method
+        case time.Time:
+        return y.Format("A Monday")
+
+        // Handle type string
+        case string:
+        return y
+
+        // Handle type with .String() method
+        case fmt.Stringer:
+        return y.String()
+
+        // Handle type with .Error() method
+        case error:
+        return y.Error()
+
+    }
+
+    // Handle named string type
+    if v := reflect.ValueOf(x); v.Kind() == reflect.String {
+        return v.String()
+    }
+
+    // Fallback to fmt package for anything else like numeric types
+    return fmt.Sprint(x)
+}
