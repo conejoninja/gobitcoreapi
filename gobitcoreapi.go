@@ -55,7 +55,7 @@ func (this *API) SetVersion(version string) {
     this.version = version
 }
 
-func (this *API) Node(address string) (interface{}, error) {
+func (this *API) Node() (interface{}, error) {
     dataStream, err := this.call("node", "GET", nil)
     data := map[string]interface{}{}
     json.Unmarshal(dataStream, &data)
@@ -126,8 +126,8 @@ func (this *API) TransactionAddresses(hash string) (interface{}, error) {
 
 func (this *API) TransactionInputs(hash string, inputIndex int) (interface{}, error) {
     inputIndexStr := ""
-    if inputIndex!=nil {
-        inputIndexStr = "/"+inputIndex
+    if inputIndex>-1 {
+        inputIndexStr = "/"+strconv.Itoa(inputIndex)
     }
     dataStream, err := this.call("transactions/"+hash+"/inputs"+inputIndexStr, "GET", nil)
     data := map[string]interface{}{}
@@ -137,8 +137,8 @@ func (this *API) TransactionInputs(hash string, inputIndex int) (interface{}, er
 
 func (this *API) TransactionOutputs(hash string, outputIndex int) (interface{}, error) {
     outputIndexStr := ""
-    if outputIndex!=nil {
-        outputIndexStr = "/"+outputIndex
+    if outputIndex>-1 {
+        outputIndexStr = "/"+strconv.Itoa(outputIndex)
     }
     dataStream, err := this.call("transactions/"+hash+"/inputs"+outputIndexStr, "GET", nil)
     data := map[string]interface{}{}
