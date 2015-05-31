@@ -26,6 +26,48 @@ type NodeStatus struct {
     Height      int
 }
 
+type Address struct {
+    Address         string
+    Transactions    string
+    Unconfirmed     string
+    Confirmed       string
+    LastActivity    string
+}
+
+type BlockHeader struct {
+    Version         int
+    PrevHash        string
+    MerkleRoot      string
+    Time            int
+    Bits            int
+    Nonce           int
+}
+
+type BlockTransaction struct {
+    Version         int
+    Inputs          []TransactionInput
+    Outputs         []TransactionOutput
+    NLockTime       int
+}
+
+type TransactionInput struct {
+    PrevTxId        string
+    OutputIndex     int
+    SequenceNumber  int
+    Script          string
+    ScriptString    string
+}
+
+type TransactionOutput struct {
+    Satoshis        string
+    Script          string
+}
+
+type Block struct {
+    Header          BlockHeader
+    Transactions    []BlockTransaction
+}
+
 func NewAPI(endPoint string) *API {
     tr := &http.Transport{
         TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -55,6 +97,7 @@ func (this *API) call(action, httpMethod string, params map[string]string) ([]by
         for key, val := range params {
             valuesStr += "&"+key+"="+val
         }
+        fmt.Println("GET => ", this.endPoint+"/"+this.version+"/"+action+"?"+valuesStr)
         res, err = this.client.Get(this.endPoint+"/"+this.version+"/"+action+"?"+valuesStr)
     }
     body, err := ioutil.ReadAll(res.Body)
@@ -67,24 +110,14 @@ func (this *API) SetVersion(version string) {
 }
 
 func (this *API) Node() (NodeStatus, error) {
-    var node NodeStatus
-
     dataStream, err := this.call("node", "GET", nil)
-    data := map[string]interface{}{}
+    var data NodeStatus
     json.Unmarshal(dataStream, &data)
 
-    if err==nil {
-        node.Sync = data["sync"].(float64)
-        node.PeerCount = int(data["peerCount"].(float64))
-        node.Height = int(data["height"].(float64))
-        node.Version = toString(data["version"])
-        node.Network = toString(data["network"])
-    }
-
-    return node, err
+    return data, err
 }
 
-func (this *API) Blocks( from, to, offset, limit int) (interface{}, error) {
+func (this *API) Blocks( from, limit, offset, to int) ([]Block, error) {
     if to==0 {
         to = 1000000
     }
@@ -98,8 +131,12 @@ func (this *API) Blocks( from, to, offset, limit int) (interface{}, error) {
         "limit": strconv.Itoa(limit),
     }
     dataStream, err := this.call("blocks", "GET", params)
-    data := map[string]interface{}{}
+    var data []Block
+    fmt.Println("DATASTREAM", dataStream)
     json.Unmarshal(dataStream, &data)
+
+    fmt.Println("BLOCKS", data)
+
     return data, err
 }
 
